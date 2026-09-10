@@ -643,8 +643,17 @@ h2,
 }
 
 .badge.resolvido,
-.badge.baixa {
+.badge.baixa,
+.badge.resolvido_ia {
   color: var(--ok);
+}
+
+.badge.triagem {
+  color: var(--accent-soft);
+}
+
+.badge.escalado {
+  color: #f0c27a;
 }
 
 .bancada-detail h4 {
@@ -674,6 +683,99 @@ h2,
   display: grid;
   gap: 10px;
   margin: 16px 0;
+}
+
+.comments-title {
+  margin-top: 8px;
+}
+
+.ai-chat {
+  margin: 20px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #161310;
+  padding: 16px;
+}
+
+.ai-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ai-head h4 {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+}
+
+.ai-thread {
+  display: grid;
+  gap: 10px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.ai-bubble {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #211d19;
+  border: 1px solid var(--line);
+}
+
+.ai-bubble.assistant {
+  background: #2a211b;
+}
+
+.ai-bubble strong {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--accent-soft);
+  margin-bottom: 6px;
+}
+
+.ai-bubble.user strong {
+  color: var(--muted);
+}
+
+.ai-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.ai-compose {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ai-quick .chip {
+  cursor: pointer;
+  background: #211d19;
+}
+
+.ai-actions .solid-btn,
+.ai-actions .ghost-btn {
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
+.ai-actions .solid-btn:disabled,
+.ai-actions .ghost-btn:disabled,
+.ai-quick .chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ghost-btn.glow {
+  border-color: var(--accent);
+  color: var(--accent-soft);
+  box-shadow: 0 0 0 2px rgba(224, 122, 61, 0.35);
 }
 
 .comment {

@@ -91,7 +91,7 @@ export const featuredProjects = [
   {
     name: 'Bancada',
     description:
-      'Helpdesk interno em Vue 3 (Composition API, Router, Pinia) com o mesmo contrato de API em PHP 8 e Node/TypeScript. Auth Bearer, papéis, filtros no servidor e validação 422.',
+      'Helpdesk interno em Vue 3 (Composition API, Router, Pinia) com o mesmo contrato de API em PHP 8 e Node/TypeScript. Auth Bearer, papéis, assistente de triagem e validação 422.',
     stack: ['Vue 3', 'PHP', 'Node', 'TypeScript', 'Docker'],
     url: 'https://github.com/Diasz1m/bancada',
     demo: '#demo-bancada',
