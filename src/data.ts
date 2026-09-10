@@ -43,7 +43,7 @@ export const experience = [
   {
     role: 'Desenvolvedor Full Stack Pleno',
     company: 'VIASOFT',
-    period: 'Jul 2025 — agora',
+    period: 'Jul 2025 — Mai 2026',
     place: 'Pato Branco, PR',
     points: [
       'Soluções web com Java Spring Boot e React em sistemas SaaS corporativos.',
