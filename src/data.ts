@@ -57,10 +57,9 @@ export const experience = [
     period: 'Nov 2022 — Jun 2025',
     place: 'Pato Branco, PR',
     points: [
-      'CRM SaaS com backend Java Spring Boot e frontend React + TypeScript.',
-      'Modelagem e otimização de MySQL, stored procedures e migrations.',
-      'Integrações com Stripe, webhooks e microsserviços.',
-      'Pipeline de importação com Python (FastAPI + Celery + Playwright) para scraping.',
+      'Sistema de gestão para imobiliárias com PHP e MySQL.',
+      'Modelagem de dados, consultas SQL e relatórios do sistema.',
+      'Manutenção e evolução de módulos já em produção.',
     ],
   },
   {
