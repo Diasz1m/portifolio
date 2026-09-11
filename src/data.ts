@@ -88,12 +88,28 @@ export const experience = [
 
 export const featuredProjects = [
   {
+    name: 'Analista B3',
+    description:
+      'Pipeline em Python que raspa os indicadores fundamentalistas do Fundamentus (Playwright), cruza com o histórico do Yahoo Finance e exporta JSON para um dashboard em Vue 3 com ECharts. A demo aqui roda os 250 papéis e os filtros no navegador.',
+    stack: ['Python', 'Playwright', 'FastAPI', 'Vue 3', 'ECharts'],
+    url: 'https://github.com/Diasz1m/market-v1',
+    demo: '#demo-market',
+  },
+  {
     name: 'Bancada',
     description:
       'Helpdesk interno em Vue 3 (Composition API, Router, Pinia) com o mesmo contrato de API em PHP 8 e Node/TypeScript. Auth Bearer, papéis, assistente de triagem e validação 422.',
     stack: ['Vue 3', 'PHP', 'Node', 'TypeScript', 'Docker'],
     url: 'https://github.com/Diasz1m/bancada',
     demo: '#demo-bancada',
+  },
+  {
+    name: 'Flappy Bird',
+    description:
+      'Clone do Flappy Bird em C++17 com raylib. Física, canos e HUD desenhados no código, sem sprites. A demo nesta página usa a mesma regra de jogo no canvas.',
+    stack: ['C++', 'raylib', 'CMake'],
+    url: 'https://github.com/Diasz1m/flapy-bird',
+    demo: '#demo-flappy',
   },
   {
     name: 'Conversor de moedas',
@@ -110,13 +126,6 @@ export const featuredProjects = [
     stack: ['Java', 'Sockets'],
     url: 'https://github.com/Diasz1m/proj_arquivos_sockets',
     demo: '#demo-sockets',
-  },
-  {
-    name: 'Blog v1',
-    description:
-      'Backend de blog em Java, com o frontend Angular no repositório front. CRUD, conteúdo e estrutura clássica de aplicação web.',
-    stack: ['Java', 'Angular'],
-    url: 'https://github.com/Diasz1m/blog-v1',
   },
   {
     name: 'Helius',
@@ -138,6 +147,7 @@ export const hiddenRepos = new Set([
   'Diasz1m',
   'webApp',
   'blog--',
+  'blog-v1',
   'Interface',
   'Products-basic',
   'employeers-test',
