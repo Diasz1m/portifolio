@@ -97,6 +97,14 @@ export const featuredProjects = [
     demo: '#demo-bancada',
   },
   {
+    name: 'Flappy Bird',
+    description:
+      'Clone do Flappy Bird em C++17 com raylib. Física, canos e HUD desenhados no código, sem sprites. A demo nesta página usa a mesma regra de jogo no canvas.',
+    stack: ['C++', 'raylib', 'CMake'],
+    url: 'https://github.com/Diasz1m/flapy-bird',
+    demo: '#demo-flappy',
+  },
+  {
     name: 'Conversor de moedas',
     description:
       'Serviço de cotação em TypeScript com Express, gRPC e consumo de API externa. A demo ao vivo nesta página usa a mesma ideia: converter valores entre moedas em tempo real.',
@@ -111,13 +119,6 @@ export const featuredProjects = [
     stack: ['Java', 'Sockets'],
     url: 'https://github.com/Diasz1m/proj_arquivos_sockets',
     demo: '#demo-sockets',
-  },
-  {
-    name: 'Blog v1',
-    description:
-      'Backend de blog em Java, com o frontend Angular no repositório front. CRUD, conteúdo e estrutura clássica de aplicação web.',
-    stack: ['Java', 'Angular'],
-    url: 'https://github.com/Diasz1m/blog-v1',
   },
   {
     name: 'Helius',
@@ -139,6 +140,7 @@ export const hiddenRepos = new Set([
   'Diasz1m',
   'webApp',
   'blog--',
+  'blog-v1',
   'Interface',
   'Products-basic',
   'employeers-test',
