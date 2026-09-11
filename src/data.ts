@@ -89,6 +89,14 @@ export const experience = [
 
 export const featuredProjects = [
   {
+    name: 'Analista B3',
+    description:
+      'Pipeline em Python que raspa os indicadores fundamentalistas do Fundamentus (Playwright), cruza com o histórico do Yahoo Finance e exporta JSON para um dashboard em Vue 3 com ECharts. A demo aqui roda os 250 papéis e os filtros no navegador.',
+    stack: ['Python', 'Playwright', 'FastAPI', 'Vue 3', 'ECharts'],
+    url: 'https://github.com/Diasz1m/market-v1',
+    demo: '#demo-market',
+  },
+  {
     name: 'Bancada',
     description:
       'Helpdesk interno em Vue 3 (Composition API, Router, Pinia) com o mesmo contrato de API em PHP 8 e Node/TypeScript. Auth Bearer, papéis, assistente de triagem e validação 422.',
