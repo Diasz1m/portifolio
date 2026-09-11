@@ -119,7 +119,7 @@ export const featuredProjects = [
     stack: ['Java', 'Sockets'],
     url: 'https://github.com/Diasz1m/proj_arquivos_sockets',
     demo: '#demo-sockets',
-  }
+  },
   {
     name: 'Helius',
     description:
@@ -140,6 +140,7 @@ export const hiddenRepos = new Set([
   'Diasz1m',
   'webApp',
   'blog--',
+  'blog-v1',
   'Interface',
   'Products-basic',
   'employeers-test',
