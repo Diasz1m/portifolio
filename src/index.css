@@ -337,6 +337,25 @@ h2,
   gap: 16px;
 }
 
+.flappy-stage {
+  outline: none;
+  border-radius: 16px;
+}
+
+.flappy-stage:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.flappy-canvas {
+  display: block;
+  width: min(100%, 360px);
+  height: auto;
+  margin-inline: auto;
+  border-radius: 16px;
+  cursor: pointer;
+  background: #70c5ce;
+}
+
 .socket-meta {
   display: flex;
   flex-wrap: wrap;
