@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { MarketHistogram, MarketPrices, MarketRanking, MarketScatter } from './MarketCharts'
+import { localeAtual, useCopy, useLang } from '../i18n'
 import {
   filtrar,
   filtrosAtivos,
@@ -29,13 +30,91 @@ const COLUNAS: Indicador[] = [
   'liq_2meses',
 ]
 
-const TOP_N = [
-  { rotulo: 'todos', valor: null },
-  { rotulo: '10', valor: 10 },
-  { rotulo: '25', valor: 25 },
-  { rotulo: '50', valor: 50 },
-  { rotulo: '100', valor: 100 },
-]
+const TOP_N = [null, 10, 25, 50, 100] as const
+
+const copy = {
+  pt: {
+    titulo: 'Analista B3',
+    hintAntes: 'Dashboard do',
+    hintDepois:
+      ': um pipeline em Python raspa os indicadores fundamentalistas do Fundamentus, junta o histórico do Yahoo Finance e exporta JSON; o painel filtra os 250 papéis inteiros no navegador, sem backend. Aqui a mesma lógica roda em React, com os gráficos em SVG.',
+    chipVue: 'Vue 3 no original',
+    coleta: (data: string) => `coleta de ${data}`,
+    carregando: 'Carregando os indicadores…',
+    erro: 'Não foi possível carregar os indicadores agora.',
+    filtros: 'Filtros',
+    limpar: 'limpar',
+    contador: (filtradas: number, total: number) => (
+      <>
+        <b>{filtradas}</b> de {total} papéis
+      </>
+    ),
+    buscar: 'Buscar papel',
+    buscaPlaceholder: 'PETR, VALE…',
+    liquidezMinima: 'Liquidez mínima em 2 meses',
+    plMaximo: 'P/L máximo',
+    pvpMaximo: 'P/VP máximo',
+    roeMinimo: 'ROE mínimo (%)',
+    dyMinimo: 'DY mínimo (%)',
+    topN: 'Manter apenas os N mais líquidos',
+    todos: 'todos',
+    excluirPrejuizo: 'Excluir empresas com prejuízo',
+    atalhos: 'Atalhos',
+    plMediano: 'P/L mediano',
+    pvpMediano: 'P/VP mediano',
+    roeMediano: 'ROE mediano',
+    dyMediano: 'DY mediano',
+    tabelaTitulo: 'Papéis filtrados',
+    tabelaLegenda:
+      'Clique num cabeçalho para ordenar, ou numa linha para destacá-la na distribuição.',
+    colunaPapel: 'Papel',
+    vazia: 'Nenhum papel passou nos filtros.',
+    mostrando: (limite: number, total: number) => `Mostrando ${limite} de ${total}.`,
+    mostrarMais: 'mostrar mais',
+    aviso: (data: string) =>
+      `Dados do Fundamentus e do Yahoo Finance, coletados em ${data}. Projeto de estudo, não é recomendação de investimento.`,
+  },
+  en: {
+    titulo: 'B3 Analyst',
+    hintAntes: 'Dashboard from',
+    hintDepois:
+      ': a Python pipeline scrapes fundamental indicators from Fundamentus, joins Yahoo Finance history and exports JSON; the panel filters all 250 tickers in the browser, with no backend. The same logic runs here in React, with the charts in SVG.',
+    chipVue: 'Vue 3 in the original',
+    coleta: (data: string) => `collected on ${data}`,
+    carregando: 'Loading the indicators…',
+    erro: 'Could not load the indicators right now.',
+    filtros: 'Filters',
+    limpar: 'clear',
+    contador: (filtradas: number, total: number) => (
+      <>
+        <b>{filtradas}</b> of {total} tickers
+      </>
+    ),
+    buscar: 'Search ticker',
+    buscaPlaceholder: 'PETR, VALE…',
+    liquidezMinima: 'Minimum 2-month liquidity',
+    plMaximo: 'Max P/L',
+    pvpMaximo: 'Max P/VP',
+    roeMinimo: 'Min ROE (%)',
+    dyMinimo: 'Min DY (%)',
+    topN: 'Keep only the N most liquid',
+    todos: 'all',
+    excluirPrejuizo: 'Exclude companies with losses',
+    atalhos: 'Shortcuts',
+    plMediano: 'Median P/L',
+    pvpMediano: 'Median P/VP',
+    roeMediano: 'Median ROE',
+    dyMediano: 'Median DY',
+    tabelaTitulo: 'Filtered tickers',
+    tabelaLegenda: 'Click a header to sort, or a row to highlight it in the distribution.',
+    colunaPapel: 'Ticker',
+    vazia: 'No tickers passed the filters.',
+    mostrando: (limite: number, total: number) => `Showing ${limite} of ${total}.`,
+    mostrarMais: 'show more',
+    aviso: (data: string) =>
+      `Data from Fundamentus and Yahoo Finance, collected on ${data}. This is a study project, not investment advice.`,
+  },
+}
 
 function numeroOuNulo(texto: string): number | null {
   if (!texto.trim()) return null
@@ -44,10 +123,12 @@ function numeroOuNulo(texto: string): number | null {
 }
 
 export default function MarketDemo() {
+  const t = useCopy(copy)
+  const lang = useLang()
   const [acoes, setAcoes] = useState<Acao[]>([])
   const [historico, setHistorico] = useState<Historico | null>(null)
   const [dataColeta, setDataColeta] = useState('')
-  const [erro, setErro] = useState('')
+  const [erro, setErro] = useState(false)
   const [visivel, setVisivel] = useState(false)
   const [filtros, setFiltros] = useState<Filtros>({ ...FILTROS_PADRAO })
   const [destaque, setDestaque] = useState<string | undefined>()
@@ -89,10 +170,10 @@ export default function MarketDemo() {
         setAcoes(dados.acoes)
         setDataColeta(dados.data)
         setHistorico((await respostaHistorico.json()) as Historico)
-        setErro('')
+        setErro(false)
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
-        setErro('Não foi possível carregar os indicadores agora.')
+        setErro(true)
       }
     }
 
@@ -101,16 +182,16 @@ export default function MarketDemo() {
   }, [visivel])
 
   const filtradas = useMemo(() => filtrar(acoes, filtros), [acoes, filtros])
-  const ativos = useMemo(() => filtrosAtivos(filtros), [filtros])
+  const ativos = useMemo(() => filtrosAtivos(filtros, lang), [filtros, lang])
 
   const resumo = useMemo(
     () => [
-      { rotulo: 'P/L mediano', valor: mediana(valores(filtradas, 'pl')), sufixo: '' },
-      { rotulo: 'P/VP mediano', valor: mediana(valores(filtradas, 'pvp')), sufixo: '' },
-      { rotulo: 'ROE mediano', valor: mediana(valores(filtradas, 'roe')), sufixo: '%' },
-      { rotulo: 'DY mediano', valor: mediana(valores(filtradas, 'div_yield')), sufixo: '%' },
+      { rotulo: t.plMediano, valor: mediana(valores(filtradas, 'pl')), sufixo: '' },
+      { rotulo: t.pvpMediano, valor: mediana(valores(filtradas, 'pvp')), sufixo: '' },
+      { rotulo: t.roeMediano, valor: mediana(valores(filtradas, 'roe')), sufixo: '%' },
+      { rotulo: t.dyMediano, valor: mediana(valores(filtradas, 'div_yield')), sufixo: '%' },
     ],
-    [filtradas],
+    [filtradas, t],
   )
 
   const ordenadas = useMemo(
@@ -143,64 +224,61 @@ export default function MarketDemo() {
   }
 
   const carregando = visivel && !erro && !acoes.length
+  const rotulos = ROTULOS[lang]
 
   return (
     <article className="panel market-demo" id="demo-market" ref={raiz}>
       <div className="bancada-head">
         <div>
-          <h3>Analista B3</h3>
+          <h3>{t.titulo}</h3>
           <p className="hint">
-            Dashboard do{' '}
+            {t.hintAntes}{' '}
             <a href="https://github.com/Diasz1m/market-v1" target="_blank" rel="noreferrer">
               market-v1
             </a>
-            : um pipeline em Python raspa os indicadores fundamentalistas do Fundamentus, junta o
-            histórico do Yahoo Finance e exporta JSON; o painel filtra os 250 papéis inteiros no
-            navegador, sem backend. Aqui a mesma lógica roda em React, com os gráficos em SVG.
+            {t.hintDepois}
           </p>
         </div>
         <div className="socket-meta">
           <span className="chip">Python + Playwright</span>
-          <span className="chip">Vue 3 no original</span>
-          {dataColeta ? <span className="chip">coleta de {dataColeta}</span> : null}
+          <span className="chip">{t.chipVue}</span>
+          {dataColeta ? <span className="chip">{t.coleta(dataColeta)}</span> : null}
         </div>
       </div>
 
-      {erro ? <p className="error">{erro}</p> : null}
-      {carregando ? <p className="status">Carregando os indicadores…</p> : null}
+      {erro ? <p className="error">{t.erro}</p> : null}
+      {carregando ? <p className="status">{t.carregando}</p> : null}
 
       {acoes.length ? (
         <div className="market-layout">
           <aside className="market-filters">
             <header>
-              <strong>Filtros</strong>
+              <strong>{t.filtros}</strong>
               {ativos.length ? (
                 <button
                   type="button"
                   className="linkish"
                   onClick={() => setFiltros({ ...FILTROS_PADRAO })}
                 >
-                  limpar
+                  {t.limpar}
                 </button>
               ) : null}
             </header>
 
-            <p className="market-counter">
-              <b>{filtradas.length}</b> de {acoes.length} papéis
-            </p>
+            <p className="market-counter">{t.contador(filtradas.length, acoes.length)}</p>
 
             <label>
-              <span>Buscar papel</span>
+              <span>{t.buscar}</span>
               <input
                 value={filtros.busca}
-                placeholder="PETR, VALE…"
+                placeholder={t.buscaPlaceholder}
                 onChange={(event) => atualizar({ busca: event.target.value })}
               />
             </label>
 
             <label>
               <span className="market-range-label">
-                Liquidez mínima em 2 meses
+                {t.liquidezMinima}
                 <em>R$ {formatarGrande(filtros.liquidezMinima)}</em>
               </span>
               <input
@@ -217,7 +295,7 @@ export default function MarketDemo() {
 
             <div className="market-pair">
               <label>
-                <span>P/L máximo</span>
+                <span>{t.plMaximo}</span>
                 <input
                   inputMode="decimal"
                   placeholder="—"
@@ -226,7 +304,7 @@ export default function MarketDemo() {
                 />
               </label>
               <label>
-                <span>P/VP máximo</span>
+                <span>{t.pvpMaximo}</span>
                 <input
                   inputMode="decimal"
                   placeholder="—"
@@ -238,7 +316,7 @@ export default function MarketDemo() {
 
             <div className="market-pair">
               <label>
-                <span>ROE mínimo (%)</span>
+                <span>{t.roeMinimo}</span>
                 <input
                   inputMode="decimal"
                   placeholder="—"
@@ -247,7 +325,7 @@ export default function MarketDemo() {
                 />
               </label>
               <label>
-                <span>DY mínimo (%)</span>
+                <span>{t.dyMinimo}</span>
                 <input
                   inputMode="decimal"
                   placeholder="—"
@@ -258,16 +336,16 @@ export default function MarketDemo() {
             </div>
 
             <label>
-              <span>Manter apenas os N mais líquidos</span>
+              <span>{t.topN}</span>
               <select
                 value={filtros.topN === null ? '' : String(filtros.topN)}
                 onChange={(event) =>
                   atualizar({ topN: event.target.value ? Number(event.target.value) : null })
                 }
               >
-                {TOP_N.map((opcao) => (
-                  <option key={opcao.rotulo} value={opcao.valor === null ? '' : String(opcao.valor)}>
-                    {opcao.rotulo}
+                {TOP_N.map((valor) => (
+                  <option key={valor === null ? 'todos' : valor} value={valor === null ? '' : String(valor)}>
+                    {valor === null ? t.todos : valor}
                   </option>
                 ))}
               </select>
@@ -279,7 +357,7 @@ export default function MarketDemo() {
                 checked={filtros.excluirPrejuizo}
                 onChange={(event) => atualizar({ excluirPrejuizo: event.target.checked })}
               />
-              Excluir empresas com prejuízo
+              {t.excluirPrejuizo}
             </label>
 
             {ativos.length ? (
@@ -293,10 +371,14 @@ export default function MarketDemo() {
             ) : null}
 
             <section className="market-presets">
-              <h5>Atalhos</h5>
+              <h5>{t.atalhos}</h5>
               {PRESETS.map((preset) => (
-                <button key={preset.nome} type="button" onClick={() => aplicarPreset(preset.valores)}>
-                  {preset.nome}
+                <button
+                  key={preset.nome.pt}
+                  type="button"
+                  onClick={() => aplicarPreset(preset.valores)}
+                >
+                  {preset.nome[lang]}
                 </button>
               ))}
             </section>
@@ -308,7 +390,7 @@ export default function MarketDemo() {
                 <div key={item.rotulo} className="stat">
                   {item.rotulo}
                   <b>
-                    {item.valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+                    {item.valor.toLocaleString(localeAtual(), { maximumFractionDigits: 2 })}
                     {item.sufixo}
                   </b>
                 </div>
@@ -327,10 +409,8 @@ export default function MarketDemo() {
             <section className="mk-card">
               <header className="mk-card-head">
                 <div>
-                  <h4>Papéis filtrados</h4>
-                  <p className="mk-legend">
-                    Clique num cabeçalho para ordenar, ou numa linha para destacá-la na distribuição.
-                  </p>
+                  <h4>{t.tabelaTitulo}</h4>
+                  <p className="mk-legend">{t.tabelaLegenda}</p>
                 </div>
               </header>
 
@@ -338,14 +418,14 @@ export default function MarketDemo() {
                 <table className="bancada-table market-table">
                   <thead>
                     <tr>
-                      <th className="market-ticker">Papel</th>
+                      <th className="market-ticker">{t.colunaPapel}</th>
                       {COLUNAS.map((coluna) => (
                         <th
                           key={coluna}
                           className={ordenarPor === coluna ? 'on' : undefined}
                           onClick={() => ordenar(coluna)}
                         >
-                          {ROTULOS[coluna].replace(' (%)', '').replace(' (R$)', '')}
+                          {rotulos[coluna].replace(' (%)', '').replace(' (R$)', '')}
                           {ordenarPor === coluna ? (descendente ? ' ↓' : ' ↑') : ''}
                         </th>
                       ))}
@@ -367,7 +447,7 @@ export default function MarketDemo() {
                     {!ordenadas.length ? (
                       <tr>
                         <td colSpan={COLUNAS.length + 1} className="mk-empty">
-                          Nenhum papel passou nos filtros.
+                          {t.vazia}
                         </td>
                       </tr>
                     ) : null}
@@ -377,18 +457,15 @@ export default function MarketDemo() {
 
               {ordenadas.length > limite ? (
                 <footer className="mk-note">
-                  Mostrando {limite} de {ordenadas.length}.{' '}
+                  {t.mostrando(limite, ordenadas.length)}{' '}
                   <button type="button" className="linkish" onClick={() => setLimite(limite + 25)}>
-                    mostrar mais
+                    {t.mostrarMais}
                   </button>
                 </footer>
               ) : null}
             </section>
 
-            <p className="mk-note">
-              Dados do Fundamentus e do Yahoo Finance, coletados em {dataColeta || '—'}. Projeto de
-              estudo, não é recomendação de investimento.
-            </p>
+            <p className="mk-note">{t.aviso(dataColeta || '—')}</p>
           </div>
         </div>
       ) : null}

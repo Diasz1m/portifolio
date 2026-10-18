@@ -8,13 +8,21 @@ import GitHubProjects from './components/GitHubProjects'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import Projects from './components/Projects'
+import { useCopy, useLang } from './i18n'
+
+const copy = {
+  pt: { footer: 'SPA em React + Vite · dados ao vivo do GitHub' },
+  en: { footer: 'React + Vite SPA · live data from GitHub' },
+}
 
 export default function App() {
   const [year] = useState(() => new Date().getFullYear())
+  const lang = useLang()
+  const t = useCopy(copy)
 
   useEffect(() => {
-    document.title = `${profile.shortName} · ${profile.title}`
-  }, [])
+    document.title = `${profile.shortName} · ${profile.title[lang]}`
+  }, [lang])
 
   return (
     <>
@@ -32,7 +40,7 @@ export default function App() {
         <span>
           © {year} {profile.name}
         </span>
-        <span>SPA em React + Vite · dados ao vivo do GitHub</span>
+        <span>{t.footer}</span>
       </footer>
     </>
   )

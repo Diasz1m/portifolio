@@ -1,5 +1,7 @@
 /** Tipos e cálculos portados do projeto market-v1 (analista B3). */
 
+import { idiomaAtual, localeAtual, type Lang, type Localized } from './i18n'
+
 export interface Acao {
   papel: string
   ticker: string
@@ -51,31 +53,57 @@ export interface Filtros {
   topN: number | null
 }
 
-export const ROTULOS: Record<Indicador, string> = {
-  cotacao: 'Cotação (R$)',
-  pl: 'P/L',
-  pvp: 'P/VP',
-  psr: 'PSR',
-  div_yield: 'Dividend Yield (%)',
-  p_ativo: 'P/Ativo',
-  p_cap_giro: 'P/Cap. Giro',
-  p_ebit: 'P/EBIT',
-  p_ativ_circ_liq: 'P/Ativo Circ. Líq.',
-  ev_ebit: 'EV/EBIT',
-  ev_ebitda: 'EV/EBITDA',
-  mrg_bruta: 'Margem bruta (%)',
-  mrg_ebit: 'Margem EBIT (%)',
-  mrg_liq: 'Margem líquida (%)',
-  liq_corr: 'Liquidez corrente',
-  roic: 'ROIC (%)',
-  roe: 'ROE (%)',
-  liq_2meses: 'Liquidez 2 meses (R$)',
-  patrim_liq: 'Patrimônio líquido (R$)',
-  div_liq_patrim: 'Dív. líq./Patrimônio',
-  cresc_rec_5a: 'Cresc. receita 5a (%)',
+/** Siglas de mercado (P/L, ROE, EV/EBIT…) são as mesmas nos dois idiomas. */
+export const ROTULOS: Record<Lang, Record<Indicador, string>> = {
+  pt: {
+    cotacao: 'Cotação (R$)',
+    pl: 'P/L',
+    pvp: 'P/VP',
+    psr: 'PSR',
+    div_yield: 'Dividend Yield (%)',
+    p_ativo: 'P/Ativo',
+    p_cap_giro: 'P/Cap. Giro',
+    p_ebit: 'P/EBIT',
+    p_ativ_circ_liq: 'P/Ativo Circ. Líq.',
+    ev_ebit: 'EV/EBIT',
+    ev_ebitda: 'EV/EBITDA',
+    mrg_bruta: 'Margem bruta (%)',
+    mrg_ebit: 'Margem EBIT (%)',
+    mrg_liq: 'Margem líquida (%)',
+    liq_corr: 'Liquidez corrente',
+    roic: 'ROIC (%)',
+    roe: 'ROE (%)',
+    liq_2meses: 'Liquidez 2 meses (R$)',
+    patrim_liq: 'Patrimônio líquido (R$)',
+    div_liq_patrim: 'Dív. líq./Patrimônio',
+    cresc_rec_5a: 'Cresc. receita 5a (%)',
+  },
+  en: {
+    cotacao: 'Price (R$)',
+    pl: 'P/L',
+    pvp: 'P/VP',
+    psr: 'PSR',
+    div_yield: 'Dividend Yield (%)',
+    p_ativo: 'P/Assets',
+    p_cap_giro: 'P/Working capital',
+    p_ebit: 'P/EBIT',
+    p_ativ_circ_liq: 'P/Net current assets',
+    ev_ebit: 'EV/EBIT',
+    ev_ebitda: 'EV/EBITDA',
+    mrg_bruta: 'Gross margin (%)',
+    mrg_ebit: 'EBIT margin (%)',
+    mrg_liq: 'Net margin (%)',
+    liq_corr: 'Current ratio',
+    roic: 'ROIC (%)',
+    roe: 'ROE (%)',
+    liq_2meses: '2-month liquidity (R$)',
+    patrim_liq: 'Equity (R$)',
+    div_liq_patrim: 'Net debt/Equity',
+    cresc_rec_5a: 'Revenue growth 5y (%)',
+  },
 }
 
-export const INDICADORES = Object.keys(ROTULOS) as Indicador[]
+export const INDICADORES = Object.keys(ROTULOS.pt) as Indicador[]
 
 export const FILTROS_PADRAO: Filtros = {
   liquidezMinima: 1e6,
@@ -88,17 +116,17 @@ export const FILTROS_PADRAO: Filtros = {
   topN: null,
 }
 
-export const PRESETS: Array<{ nome: string; valores: Partial<Filtros> }> = [
+export const PRESETS: Array<{ nome: Localized<string>; valores: Partial<Filtros> }> = [
   {
-    nome: 'Líquidas e rentáveis',
+    nome: { pt: 'Líquidas e rentáveis', en: 'Liquid and profitable' },
     valores: { liquidezMinima: 2e7, roeMinimo: 15, excluirPrejuizo: true },
   },
   {
-    nome: 'Boas pagadoras de dividendos',
+    nome: { pt: 'Boas pagadoras de dividendos', en: 'Good dividend payers' },
     valores: { dyMinimo: 8, pvpMaximo: 2, excluirPrejuizo: true },
   },
   {
-    nome: 'Descontadas',
+    nome: { pt: 'Descontadas', en: 'Discounted' },
     valores: { plMaximo: 8, pvpMaximo: 1, excluirPrejuizo: true },
   },
 ]
@@ -123,32 +151,70 @@ export function filtrar(acoes: Acao[], filtros: Filtros): Acao[] {
   return filtros.topN !== null ? resultado.slice(0, filtros.topN) : resultado
 }
 
-export function filtrosAtivos(filtros: Filtros): string[] {
+type Etiqueta = 'liquidez' | 'pl' | 'pvp' | 'roe' | 'dy' | 'prejuizo' | 'busca' | 'topN'
+
+/** Etiquetas dos chips de filtro; o idioma vem de fora para o memo do componente reagir a ele. */
+const ETIQUETAS: Localized<Record<Etiqueta, string>> = {
+  pt: {
+    liquidez: 'liquidez',
+    pl: 'P/L',
+    pvp: 'P/VP',
+    roe: 'ROE',
+    dy: 'DY',
+    prejuizo: 'sem prejuízo',
+    busca: 'busca',
+    topN: 'top N',
+  },
+  en: {
+    liquidez: 'liquidity',
+    pl: 'P/L',
+    pvp: 'P/VP',
+    roe: 'ROE',
+    dy: 'DY',
+    prejuizo: 'no losses',
+    busca: 'search',
+    topN: 'top N',
+  },
+}
+
+export function filtrosAtivos(filtros: Filtros, lang: Lang): string[] {
+  const etiqueta = ETIQUETAS[lang]
   const lista: string[] = []
-  if (filtros.liquidezMinima !== FILTROS_PADRAO.liquidezMinima) lista.push('liquidez')
-  if (filtros.plMaximo !== null) lista.push('P/L')
-  if (filtros.pvpMaximo !== null) lista.push('P/VP')
-  if (filtros.roeMinimo !== null) lista.push('ROE')
-  if (filtros.dyMinimo !== null) lista.push('DY')
-  if (filtros.excluirPrejuizo) lista.push('sem prejuízo')
-  if (filtros.busca) lista.push('busca')
-  if (filtros.topN !== null) lista.push('top N')
+  if (filtros.liquidezMinima !== FILTROS_PADRAO.liquidezMinima) lista.push(etiqueta.liquidez)
+  if (filtros.plMaximo !== null) lista.push(etiqueta.pl)
+  if (filtros.pvpMaximo !== null) lista.push(etiqueta.pvp)
+  if (filtros.roeMinimo !== null) lista.push(etiqueta.roe)
+  if (filtros.dyMinimo !== null) lista.push(etiqueta.dy)
+  if (filtros.excluirPrejuizo) lista.push(etiqueta.prejuizo)
+  if (filtros.busca) lista.push(etiqueta.busca)
+  if (filtros.topN !== null) lista.push(etiqueta.topN)
   return lista
+}
+
+/** Sufixos de escala: 1,9 bi / 45,3 mi / 820 mil em português; bn / m / k em inglês. */
+const SUFIXOS: Localized<{ bilhao: string; milhao: string; milhar: string }> = {
+  pt: { bilhao: 'bi', milhao: 'mi', milhar: 'mil' },
+  en: { bilhao: 'bn', milhao: 'm', milhar: 'k' },
 }
 
 /** Formata valores grandes como 1,9 bi / 45,3 mi / 820 mil. */
 export function formatarGrande(valor: number | null): string {
   if (valor === null || Number.isNaN(valor)) return '—'
+  const locale = localeAtual()
+  const sufixo = SUFIXOS[idiomaAtual()]
   const abs = Math.abs(valor)
-  if (abs >= 1e9) return `${(valor / 1e9).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} bi`
-  if (abs >= 1e6) return `${(valor / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
-  if (abs >= 1e3) return `${(valor / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`
-  return valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+  if (abs >= 1e9)
+    return `${(valor / 1e9).toLocaleString(locale, { maximumFractionDigits: 2 })} ${sufixo.bilhao}`
+  if (abs >= 1e6)
+    return `${(valor / 1e6).toLocaleString(locale, { maximumFractionDigits: 1 })} ${sufixo.milhao}`
+  if (abs >= 1e3)
+    return `${(valor / 1e3).toLocaleString(locale, { maximumFractionDigits: 0 })} ${sufixo.milhar}`
+  return valor.toLocaleString(locale, { maximumFractionDigits: 2 })
 }
 
 export function formatarNumero(valor: number | null, casas = 2): string {
   if (valor === null || Number.isNaN(valor)) return '—'
-  return valor.toLocaleString('pt-BR', {
+  return valor.toLocaleString(localeAtual(), {
     minimumFractionDigits: casas,
     maximumFractionDigits: casas,
   })

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { assistantOpening, assistantReply, type AiOutcome } from '../bancadaAi'
+import { localeAtual, useCopy } from '../i18n'
 import BancadaAiChat, { type AiChatMessage } from './BancadaAiChat'
 
 type Role = 'admin' | 'agente' | 'solicitante'
@@ -42,7 +43,8 @@ const USERS: User[] = [
   { id: 3, name: 'Marina Alves', email: 'admin@bancada.test', password: 'senha123', role: 'admin' },
 ]
 
-const nowLabel = () => new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+const nowLabel = () =>
+  new Date().toLocaleString(localeAtual(), { dateStyle: 'short', timeStyle: 'short' })
 
 const seedTickets = (): Ticket[] => [
   {
@@ -119,35 +121,154 @@ const seedAi = (): Record<number, AiChatMessage[]> => ({
   ],
 })
 
-const STATUS_LABEL: Record<Status, string> = {
-  aberto: 'aberto',
-  em_andamento: 'em andamento',
-  resolvido: 'resolvido',
-}
+/** Ordem dos filtros da fila; o rótulo de cada um vem do bloco de textos. */
+const FILTERS: Array<'todos' | Status> = ['todos', 'aberto', 'em_andamento', 'resolvido']
 
-const PRIORITY_LABEL: Record<Priority, string> = {
-  baixa: 'baixa',
-  media: 'média',
-  alta: 'alta',
-}
-
-const FILTERS: Array<{ value: 'todos' | Status; label: string }> = [
-  { value: 'todos', label: 'Todos' },
-  { value: 'aberto', label: 'Abertos' },
-  { value: 'em_andamento', label: 'Em andamento' },
-  { value: 'resolvido', label: 'Resolvidos' },
-]
-
-const AI_LABEL: Record<AiOutcome, string> = {
-  triagem: 'em triagem',
-  resolvido_ia: 'resolveu',
-  escalado: 'com agente',
-}
-
-const AI_ASIDE: Record<AiOutcome, string> = {
-  triagem: 'tentando resolver',
-  resolvido_ia: 'resolveu o chamado',
-  escalado: 'passou para a fila',
+const copy = {
+  pt: {
+    titulo: 'Bancada',
+    aberturaAntes: 'Helpdesk interno no mesmo contrato do repositório',
+    aberturaDepois:
+      ': login, papéis, assistente de triagem com procedimentos da TI, 422 no formulário e 403 se o solicitante tenta mudar status. Roda aqui no navegador, sem Docker.',
+    sair: 'Sair',
+    papeis: { admin: 'admin', agente: 'agente', solicitante: 'solicitante' },
+    loginKicker: 'A mesa de TI',
+    loginLede:
+      'Entre com uma das contas de teste. Abra o chamado da VPN e converse com a assistente — ela usa a mesma base de procedimentos do projeto. Ana altera status; Carlos só abre e comenta; Marina é admin.',
+    email: 'E-mail',
+    senha: 'Senha',
+    entrar: 'Entrar',
+    dicaSenha: 'senha123 para todas as contas',
+    erroLogin: 'Credenciais inválidas. (401)',
+    stats: {
+      total: 'total',
+      aberto: 'abertos',
+      em_andamento: 'em andamento',
+      resolvido: 'resolvidos',
+    },
+    filtros: {
+      todos: 'Todos',
+      aberto: 'Abertos',
+      em_andamento: 'Em andamento',
+      resolvido: 'Resolvidos',
+    },
+    abrirChamado: 'Abrir chamado',
+    filaVazia: 'Nenhum chamado neste filtro.',
+    colunas: {
+      titulo: 'Título',
+      status: 'Status',
+      prioridade: 'Prioridade',
+      ia: 'IA',
+      responsavel: 'Responsável',
+    },
+    status: { aberto: 'aberto', em_andamento: 'em andamento', resolvido: 'resolvido' },
+    statusOpcao: { aberto: 'Aberto', em_andamento: 'Em andamento', resolvido: 'Resolvido' },
+    prioridade: { baixa: 'baixa', media: 'média', alta: 'alta' },
+    prioridadeOpcao: { baixa: 'Baixa', media: 'Média', alta: 'Alta' },
+    ia: { triagem: 'em triagem', resolvido_ia: 'resolveu', escalado: 'com agente' },
+    iaResumo: {
+      triagem: 'tentando resolver',
+      resolvido_ia: 'resolveu o chamado',
+      escalado: 'passou para a fila',
+    },
+    voltar: '← Voltar à fila',
+    campoTitulo: 'Título',
+    campoPrioridade: 'Prioridade',
+    campoDescricao: 'Descrição',
+    tituloObrigatorio: 'Título é obrigatório.',
+    descricaoObrigatoria: 'Descrição é obrigatória.',
+    chamadoNumero: (id: number) => `Chamado #${id}`,
+    abertoPor: (quem: string, prioridade: string) => `Aberto por ${quem} · prioridade ${prioridade}`,
+    comentarios: 'Comentários',
+    semComentarios: 'Nenhum comentário ainda.',
+    novoComentario: 'Novo comentário',
+    comentar: 'Comentar',
+    triagem: 'Triagem',
+    triagemNota:
+      'A assistente atende primeiro. Agente e admin alteram status. Solicitante recebe 403.',
+    atribuirMim: 'Atribuir a mim',
+    responsavel: (quem: string) => `Responsável: ${quem}`,
+    ninguem: 'ninguém',
+    assistente: (estado: string) => `Assistente: ${estado}`,
+    erroPermissaoIa: 'Sem permissão para falar com a assistente neste chamado. (403)',
+    erroIaEncerrada: 'A assistente já encerrou este atendimento. (409)',
+    erroMensagemVazia: 'Escreva uma mensagem. (422)',
+    erroJaResolvido: 'Chamado já está resolvido. (409)',
+    erroJaComAgente: 'Este chamado já está com um agente. (409)',
+    erroPermissaoChamado: 'Sem permissão para alterar o chamado. (403)',
+  },
+  en: {
+    titulo: 'Bancada',
+    aberturaAntes: 'Internal helpdesk built to the same contract as the',
+    aberturaDepois:
+      ' repository: login, roles, a triage assistant backed by IT procedures, a 422 on the form and a 403 when the requester tries to change status. It runs right here in the browser, no Docker.',
+    sair: 'Sign out',
+    papeis: { admin: 'admin', agente: 'agent', solicitante: 'requester' },
+    loginKicker: 'The IT desk',
+    loginLede:
+      'Sign in with one of the test accounts. Open the VPN ticket and talk to the assistant — it works from the same procedure base as the project. Ana changes status; Carlos only opens tickets and comments; Marina is the admin.',
+    email: 'Email',
+    senha: 'Password',
+    entrar: 'Sign in',
+    dicaSenha: 'senha123 for every account',
+    erroLogin: 'Invalid credentials. (401)',
+    stats: {
+      total: 'total',
+      aberto: 'open',
+      em_andamento: 'in progress',
+      resolvido: 'resolved',
+    },
+    filtros: {
+      todos: 'All',
+      aberto: 'Open',
+      em_andamento: 'In progress',
+      resolvido: 'Resolved',
+    },
+    abrirChamado: 'Open ticket',
+    filaVazia: 'No tickets in this filter.',
+    colunas: {
+      titulo: 'Title',
+      status: 'Status',
+      prioridade: 'Priority',
+      ia: 'AI',
+      responsavel: 'Assignee',
+    },
+    status: { aberto: 'open', em_andamento: 'in progress', resolvido: 'resolved' },
+    statusOpcao: { aberto: 'Open', em_andamento: 'In progress', resolvido: 'Resolved' },
+    prioridade: { baixa: 'low', media: 'medium', alta: 'high' },
+    prioridadeOpcao: { baixa: 'Low', media: 'Medium', alta: 'High' },
+    ia: { triagem: 'triaging', resolvido_ia: 'resolved it', escalado: 'with an agent' },
+    iaResumo: {
+      triagem: 'trying to resolve it',
+      resolvido_ia: 'resolved the ticket',
+      escalado: 'handed it to the queue',
+    },
+    voltar: '← Back to the queue',
+    campoTitulo: 'Title',
+    campoPrioridade: 'Priority',
+    campoDescricao: 'Description',
+    tituloObrigatorio: 'Title is required.',
+    descricaoObrigatoria: 'Description is required.',
+    chamadoNumero: (id: number) => `Ticket #${id}`,
+    abertoPor: (quem: string, prioridade: string) => `Opened by ${quem} · ${prioridade} priority`,
+    comentarios: 'Comments',
+    semComentarios: 'No comments yet.',
+    novoComentario: 'New comment',
+    comentar: 'Comment',
+    triagem: 'Triage',
+    triagemNota:
+      'The assistant answers first. Agents and admins change status. Requesters get a 403.',
+    atribuirMim: 'Assign to me',
+    responsavel: (quem: string) => `Assignee: ${quem}`,
+    ninguem: 'nobody',
+    assistente: (estado: string) => `Assistant: ${estado}`,
+    erroPermissaoIa: 'You cannot talk to the assistant on this ticket. (403)',
+    erroIaEncerrada: 'The assistant has already closed this conversation. (409)',
+    erroMensagemVazia: 'Write a message. (422)',
+    erroJaResolvido: 'This ticket is already resolved. (409)',
+    erroJaComAgente: 'This ticket is already with an agent. (409)',
+    erroPermissaoChamado: 'You cannot change this ticket. (403)',
+  },
 }
 
 function isAgent(user: User) {
@@ -155,11 +276,13 @@ function isAgent(user: User) {
 }
 
 function Badge({ value, kind }: { value: Status | Priority; kind: 'status' | 'priority' }) {
-  const label = kind === 'status' ? STATUS_LABEL[value as Status] : PRIORITY_LABEL[value as Priority]
+  const t = useCopy(copy)
+  const label = kind === 'status' ? t.status[value as Status] : t.prioridade[value as Priority]
   return <span className={`badge ${value}`}>{label}</span>
 }
 
 export default function BancadaDemo() {
+  const t = useCopy(copy)
   const [user, setUser] = useState<User | null>(null)
   const [screen, setScreen] = useState<Screen>('login')
   const [tickets, setTickets] = useState<Ticket[]>(seedTickets)
@@ -254,7 +377,7 @@ export default function BancadaDemo() {
       (account) => account.email === email.trim().toLowerCase() && account.password === password,
     )
     if (!found) {
-      setLoginError('Credenciais inválidas. (401)')
+      setLoginError(t.erroLogin)
       return
     }
     loginAs(found)
@@ -282,8 +405,8 @@ export default function BancadaDemo() {
     event.preventDefault()
     if (!user) return
     const errors: { title?: string; description?: string } = {}
-    if (!title.trim()) errors.title = 'Título é obrigatório.'
-    if (!description.trim()) errors.description = 'Descrição é obrigatória.'
+    if (!title.trim()) errors.title = t.tituloObrigatorio
+    if (!description.trim()) errors.description = t.descricaoObrigatoria
     setFormErrors(errors)
     if (Object.keys(errors).length > 0) return
 
@@ -315,15 +438,15 @@ export default function BancadaDemo() {
   function sendAi(text: string) {
     if (!user || !selected) return
     if (!(isAgent(user) || selected.requesterId === user.id)) {
-      setAiError('Sem permissão para falar com a assistente neste chamado. (403)')
+      setAiError(t.erroPermissaoIa)
       return
     }
     if (selected.status === 'resolvido' || selected.aiOutcome !== 'triagem') {
-      setAiError('A assistente já encerrou este atendimento. (409)')
+      setAiError(t.erroIaEncerrada)
       return
     }
     if (!text.trim()) {
-      setAiError('Escreva uma mensagem. (422)')
+      setAiError(t.erroMensagemVazia)
       return
     }
 
@@ -343,11 +466,11 @@ export default function BancadaDemo() {
   function resolveWithAi() {
     if (!user || !selected) return
     if (!(isAgent(user) || selected.requesterId === user.id)) {
-      setAiError('Sem permissão para falar com a assistente neste chamado. (403)')
+      setAiError(t.erroPermissaoIa)
       return
     }
     if (selected.status === 'resolvido') {
-      setAiError('Chamado já está resolvido. (409)')
+      setAiError(t.erroJaResolvido)
       return
     }
     setTickets((current) =>
@@ -362,11 +485,11 @@ export default function BancadaDemo() {
   function escalateAi() {
     if (!user || !selected) return
     if (!(isAgent(user) || selected.requesterId === user.id)) {
-      setAiError('Sem permissão para falar com a assistente neste chamado. (403)')
+      setAiError(t.erroPermissaoIa)
       return
     }
     if (selected.status === 'resolvido' || selected.aiOutcome !== 'triagem') {
-      setAiError('Este chamado já está com um agente. (409)')
+      setAiError(t.erroJaComAgente)
       return
     }
     setTickets((current) =>
@@ -395,7 +518,7 @@ export default function BancadaDemo() {
   function updateStatus(next: Status) {
     if (!user || !selected) return
     if (!isAgent(user)) {
-      setActionError('Sem permissão para alterar o chamado. (403)')
+      setActionError(t.erroPermissaoChamado)
       return
     }
     setTickets((current) =>
@@ -407,7 +530,7 @@ export default function BancadaDemo() {
   function assignMe() {
     if (!user || !selected) return
     if (!isAgent(user)) {
-      setActionError('Sem permissão para alterar o chamado. (403)')
+      setActionError(t.erroPermissaoChamado)
       return
     }
     setTickets((current) =>
@@ -440,23 +563,22 @@ export default function BancadaDemo() {
     <article className="panel bancada" id="demo-bancada">
       <div className="bancada-head">
         <div>
-          <h3>Bancada</h3>
+          <h3>{t.titulo}</h3>
           <p className="hint">
-            Helpdesk interno no mesmo contrato do repositório{' '}
+            {t.aberturaAntes}{' '}
             <a href="https://github.com/Diasz1m/bancada" target="_blank" rel="noreferrer">
               bancada
             </a>
-            : login, papéis, assistente de triagem com procedimentos da TI, 422 no formulário e
-            403 se o solicitante tenta mudar status. Roda aqui no navegador, sem Docker.
+            {t.aberturaDepois}
           </p>
         </div>
         {user ? (
           <div className="bancada-user">
             <span>
-              {user.name} · {user.role}
+              {user.name} · {t.papeis[user.role]}
             </span>
             <button className="ghost-btn" type="button" onClick={logout}>
-              Sair
+              {t.sair}
             </button>
           </div>
         ) : null}
@@ -465,27 +587,23 @@ export default function BancadaDemo() {
       {screen === 'login' ? (
         <div className="bancada-login">
           <div>
-            <p className="kicker">A mesa de TI</p>
-            <p className="lede">
-              Entre com uma das contas de teste. Abra o chamado da VPN e converse com a
-              assistente — ela usa a mesma base de procedimentos do projeto. Ana altera status;
-              Carlos só abre e comenta; Marina é admin.
-            </p>
+            <p className="kicker">{t.loginKicker}</p>
+            <p className="lede">{t.loginLede}</p>
             <div className="bancada-accounts">
               {USERS.map((account) => (
                 <button key={account.email} type="button" className="chip" onClick={() => loginAs(account)}>
-                  {account.name} · {account.role}
+                  {account.name} · {t.papeis[account.role]}
                 </button>
               ))}
             </div>
           </div>
           <form className="bancada-form" onSubmit={submitLogin}>
             <label>
-              <span>E-mail</span>
+              <span>{t.email}</span>
               <input value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" />
             </label>
             <label>
-              <span>Senha</span>
+              <span>{t.senha}</span>
               <input
                 type="password"
                 value={password}
@@ -495,9 +613,9 @@ export default function BancadaDemo() {
             </label>
             {loginError ? <p className="error">{loginError}</p> : null}
             <button className="solid-btn" type="submit">
-              Entrar
+              {t.entrar}
             </button>
-            <p className="status">senha123 para todas as contas</p>
+            <p className="status">{t.dicaSenha}</p>
           </form>
         </div>
       ) : null}
@@ -506,48 +624,48 @@ export default function BancadaDemo() {
         <div>
           <div className="bancada-stats">
             <div className="stat">
-              <b>{stats.total}</b> total
+              <b>{stats.total}</b> {t.stats.total}
             </div>
             <div className="stat">
-              <b>{stats.aberto}</b> abertos
+              <b>{stats.aberto}</b> {t.stats.aberto}
             </div>
             <div className="stat">
-              <b>{stats.em_andamento}</b> em andamento
+              <b>{stats.em_andamento}</b> {t.stats.em_andamento}
             </div>
             <div className="stat">
-              <b>{stats.resolvido}</b> resolvidos
+              <b>{stats.resolvido}</b> {t.stats.resolvido}
             </div>
           </div>
           <div className="bancada-toolbar">
             <div className="filters">
               {FILTERS.map((option) => (
                 <button
-                  key={option.value}
+                  key={option}
                   type="button"
-                  className={filter === option.value ? 'chip active' : 'chip'}
-                  onClick={() => setFilter(option.value)}
+                  className={filter === option ? 'chip active' : 'chip'}
+                  onClick={() => setFilter(option)}
                 >
-                  {option.label}
+                  {t.filtros[option]}
                 </button>
               ))}
             </div>
             <button className="solid-btn" type="button" onClick={() => setScreen('create')}>
-              Abrir chamado
+              {t.abrirChamado}
             </button>
           </div>
           {visibleTickets.length === 0 ? (
-            <p className="status">Nenhum chamado neste filtro.</p>
+            <p className="status">{t.filaVazia}</p>
           ) : (
             <div className="bancada-table-wrap">
               <table className="bancada-table">
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Título</th>
-                    <th>Status</th>
-                    <th>Prioridade</th>
-                    <th>IA</th>
-                    <th>Responsável</th>
+                    <th>{t.colunas.titulo}</th>
+                    <th>{t.colunas.status}</th>
+                    <th>{t.colunas.prioridade}</th>
+                    <th>{t.colunas.ia}</th>
+                    <th>{t.colunas.responsavel}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -566,7 +684,7 @@ export default function BancadaDemo() {
                         <Badge kind="priority" value={ticket.priority} />
                       </td>
                       <td>
-                        <span className={`badge ${ticket.aiOutcome}`}>{AI_LABEL[ticket.aiOutcome]}</span>
+                        <span className={`badge ${ticket.aiOutcome}`}>{t.ia[ticket.aiOutcome]}</span>
                       </td>
                       <td>{ticket.assignee || '—'}</td>
                     </tr>
@@ -581,28 +699,28 @@ export default function BancadaDemo() {
       {user && screen === 'create' ? (
         <form className="bancada-form" onSubmit={createTicket}>
           <button className="linkish" type="button" onClick={() => setScreen('list')}>
-            ← Voltar à fila
+            {t.voltar}
           </button>
           <label>
-            <span>Título</span>
+            <span>{t.campoTitulo}</span>
             <input value={title} onChange={(event) => setTitle(event.target.value)} />
             {formErrors.title ? <span className="error">{formErrors.title}</span> : null}
           </label>
           <label>
-            <span>Prioridade</span>
+            <span>{t.campoPrioridade}</span>
             <select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>
-              <option value="baixa">Baixa</option>
-              <option value="media">Média</option>
-              <option value="alta">Alta</option>
+              <option value="baixa">{t.prioridadeOpcao.baixa}</option>
+              <option value="media">{t.prioridadeOpcao.media}</option>
+              <option value="alta">{t.prioridadeOpcao.alta}</option>
             </select>
           </label>
           <label>
-            <span>Descrição</span>
+            <span>{t.campoDescricao}</span>
             <textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} />
             {formErrors.description ? <span className="error">{formErrors.description}</span> : null}
           </label>
           <button className="solid-btn" type="submit">
-            Abrir chamado
+            {t.abrirChamado}
           </button>
         </form>
       ) : null}
@@ -610,15 +728,15 @@ export default function BancadaDemo() {
       {user && screen === 'detail' && selected ? (
         <div className="bancada-detail">
           <button className="linkish" type="button" onClick={() => setScreen('list')}>
-            ← Voltar à fila
+            {t.voltar}
           </button>
           <div className="bancada-detail-grid">
             <section>
-              <p className="status">Chamado #{selected.id}</p>
+              <p className="status">{t.chamadoNumero(selected.id)}</p>
               <h4>{selected.title}</h4>
               <p>{selected.description}</p>
               <p className="status">
-                Aberto por {selected.requester} · prioridade {PRIORITY_LABEL[selected.priority]}
+                {t.abertoPor(selected.requester, t.prioridade[selected.priority])}
               </p>
               <BancadaAiChat
                 outcome={selected.aiOutcome}
@@ -630,10 +748,10 @@ export default function BancadaDemo() {
                 onResolve={resolveWithAi}
                 onEscalate={escalateAi}
               />
-              <h4 className="comments-title">Comentários</h4>
+              <h4 className="comments-title">{t.comentarios}</h4>
               <div className="comments">
                 {selectedComments.length === 0 ? (
-                  <p className="status">Nenhum comentário ainda.</p>
+                  <p className="status">{t.semComentarios}</p>
                 ) : (
                   selectedComments.map((comment) => (
                     <article key={comment.id} className="comment">
@@ -646,35 +764,35 @@ export default function BancadaDemo() {
               </div>
               <form className="bancada-form" onSubmit={sendComment}>
                 <label>
-                  <span>Novo comentário</span>
+                  <span>{t.novoComentario}</span>
                   <textarea rows={3} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} />
                 </label>
                 <button className="solid-btn" type="submit" disabled={!commentBody.trim()}>
-                  Comentar
+                  {t.comentar}
                 </button>
               </form>
             </section>
             <aside className="bancada-aside">
-              <h4>Triagem</h4>
-              <p className="status">A assistente atende primeiro. Agente e admin alteram status. Solicitante recebe 403.</p>
+              <h4>{t.triagem}</h4>
+              <p className="status">{t.triagemNota}</p>
               <label>
-                <span>Status</span>
+                <span>{t.colunas.status}</span>
                 <select
                   value={selected.status}
                   onChange={(event) => updateStatus(event.target.value as Status)}
                 >
-                  <option value="aberto">Aberto</option>
-                  <option value="em_andamento">Em andamento</option>
-                  <option value="resolvido">Resolvido</option>
+                  <option value="aberto">{t.statusOpcao.aberto}</option>
+                  <option value="em_andamento">{t.statusOpcao.em_andamento}</option>
+                  <option value="resolvido">{t.statusOpcao.resolvido}</option>
                 </select>
               </label>
               {isAgent(user) ? (
                 <button className="ghost-btn" type="button" onClick={assignMe}>
-                  Atribuir a mim
+                  {t.atribuirMim}
                 </button>
               ) : null}
-              <p className="status">Responsável: {selected.assignee || 'ninguém'}</p>
-              <p className="status">Assistente: {AI_ASIDE[selected.aiOutcome]}</p>
+              <p className="status">{t.responsavel(selected.assignee || t.ninguem)}</p>
+              <p className="status">{t.assistente(t.iaResumo[selected.aiOutcome])}</p>
               {actionError ? <p className="error">{actionError}</p> : null}
             </aside>
           </div>
