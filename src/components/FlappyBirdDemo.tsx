@@ -1,4 +1,28 @@
 import { useEffect, useRef } from 'react'
+import { useCopy } from '../i18n'
+
+const copy = {
+  pt: {
+    hintAntes: 'Port para o navegador do clone em C++17 + raylib',
+    hintDepois: ': mesma gravidade, canos e colisão. Gráficos e som gerados no código, sem sprites.',
+    aria: 'Jogo Flappy Bird. Espaço, seta para cima ou clique para voar.',
+    voar: 'Espaço, seta ou clique para voar',
+    recorde: (n: number) => `Recorde: ${n}`,
+    fim: 'FIM DE JOGO',
+    pontos: (n: number) => `Pontos: ${n}`,
+    reiniciar: 'Espaço para reiniciar',
+  },
+  en: {
+    hintAntes: 'Browser port of the C++17 + raylib clone',
+    hintDepois: ': same gravity, pipes and collision. Graphics and sound generated in code, no sprites.',
+    aria: 'Flappy Bird game. Space, up arrow or click to flap.',
+    voar: 'Space, arrow or click to flap',
+    recorde: (n: number) => `Best: ${n}`,
+    fim: 'GAME OVER',
+    pontos: (n: number) => `Score: ${n}`,
+    reiniciar: 'Space to restart',
+  },
+}
 
 const W = 480
 const H = 720
@@ -52,8 +76,11 @@ function playTone(audioCtx: AudioContext, frequency: number, seconds: number) {
 }
 
 export default function FlappyBirdDemo() {
+  const t = useCopy(copy)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const textos = useRef(t)
+  textos.current = t
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -363,8 +390,8 @@ export default function FlappyBirdDemo() {
         gfx.fillStyle = 'rgba(0,0,0,0.16)'
         gfx.fillRect(0, 0, W, H)
         centerText('FLAPPY BIRD', 168, 42, '#ffd640')
-        centerText('Espaço, seta ou clique para voar', 450, 20, '#fff')
-        if (highScore > 0) centerText(`Recorde: ${highScore}`, 500, 22, '#ffec96')
+        centerText(textos.current.voar, 450, 20, '#fff')
+        if (highScore > 0) centerText(textos.current.recorde(highScore), 500, 22, '#ffec96')
       }
 
       if (state === 'gameover') {
@@ -374,10 +401,10 @@ export default function FlappyBirdDemo() {
         gfx.strokeStyle = '#5a461e'
         gfx.lineWidth = 2
         roundRect(70, 180, W - 140, 260, 18)
-        centerText('FIM DE JOGO', 230, 28, '#b44628')
-        centerText(`Pontos: ${score}`, 290, 26, '#323232')
-        centerText(`Recorde: ${highScore}`, 330, 24, '#5a5a5a')
-        centerText('Espaço para reiniciar', 400, 18, '#505050')
+        centerText(textos.current.fim, 230, 28, '#b44628')
+        centerText(textos.current.pontos(score), 290, 26, '#323232')
+        centerText(textos.current.recorde(highScore), 330, 24, '#5a5a5a')
+        centerText(textos.current.reiniciar, 400, 18, '#505050')
       }
     }
 
@@ -420,11 +447,11 @@ export default function FlappyBirdDemo() {
         <div>
           <h3>Flappy Bird</h3>
           <p className="hint">
-            Port para o navegador do clone em C++17 + raylib{' '}
+            {t.hintAntes}{' '}
             <a href="https://github.com/Diasz1m/flapy-bird" target="_blank" rel="noreferrer">
               flapy-bird
             </a>
-            : mesma gravidade, canos e colisão. Gráficos e som gerados no código, sem sprites.
+            {t.hintDepois}
           </p>
         </div>
         <div className="socket-meta">
@@ -437,7 +464,7 @@ export default function FlappyBirdDemo() {
         className="flappy-stage"
         ref={wrapRef}
         tabIndex={0}
-        aria-label="Jogo Flappy Bird. Espaço, seta para cima ou clique para voar."
+        aria-label={t.aria}
       >
         <canvas ref={canvasRef} width={W} height={H} className="flappy-canvas" />
       </div>

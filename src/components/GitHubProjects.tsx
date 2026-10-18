@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { hiddenRepos, profile } from '../data'
+import { useCopy, useLang } from '../i18n'
 
 type Repo = {
   name: string
@@ -12,10 +13,39 @@ type Repo = {
   fork: boolean
 }
 
+const copy = {
+  pt: {
+    kicker: 'GitHub',
+    title: 'Repositórios ao vivo',
+    loading: 'Carregando repositórios…',
+    count: (total: number) => `${total} repositórios públicos`,
+    failed: 'Não deu para buscar o GitHub agora. Os destaques acima continuam no ar.',
+    placeholder: 'Filtrar por nome, stack ou descrição',
+    filterLabel: 'Filtrar repositórios',
+    noDescription: 'Sem descrição no GitHub — o código está no repositório.',
+    open: 'Abrir repo',
+    site: 'Site',
+  },
+  en: {
+    kicker: 'GitHub',
+    title: 'Live repositories',
+    loading: 'Loading repositories…',
+    count: (total: number) => `${total} public repositories`,
+    failed: "Couldn't reach GitHub right now. The featured projects above are still available.",
+    placeholder: 'Filter by name, stack or description',
+    filterLabel: 'Filter repositories',
+    noDescription: 'No description on GitHub — the code is in the repository.',
+    open: 'Open repo',
+    site: 'Website',
+  },
+}
+
 export default function GitHubProjects() {
   const [repos, setRepos] = useState<Repo[]>([])
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('Carregando repositórios…')
+  const [erro, setErro] = useState(false)
+  const t = useCopy(copy)
+  const lang = useLang()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -28,18 +58,20 @@ export default function GitHubProjects() {
         )
         if (!response.ok) throw new Error('GitHub indisponível')
         const data = (await response.json()) as Repo[]
-        const filtered = data.filter((repo) => !repo.fork && !hiddenRepos.has(repo.name))
-        setRepos(filtered)
-        setStatus(`${filtered.length} repositórios públicos`)
+        setRepos(data.filter((repo) => !repo.fork && !hiddenRepos.has(repo.name)))
+        setErro(false)
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
-        setStatus('Não deu para buscar o GitHub agora. Os destaques acima continuam no ar.')
+        setErro(true)
       }
     }
 
     void load()
     return () => controller.abort()
   }, [])
+
+  /* O status é derivado para acompanhar a troca de idioma depois da busca. */
+  const status = erro ? t.failed : repos.length ? t.count(repos.length) : t.loading
 
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase()
@@ -58,16 +90,17 @@ export default function GitHubProjects() {
   return (
     <section className="section" id="github">
       <div className="wrap">
-        <p className="kicker">GitHub</p>
-        <h2>Repositórios ao vivo</h2>
+        <p className="kicker">{t.kicker}</p>
+        <h2>{t.title}</h2>
         <div className="github-toolbar">
           <p className="status">{status}</p>
           <input
             type="search"
-            placeholder="Filtrar por nome, stack ou descrição"
+            placeholder={t.placeholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            aria-label="Filtrar repositórios"
+            aria-label={t.filterLabel}
+            lang={lang}
           />
         </div>
         <div className="cards">
@@ -78,14 +111,14 @@ export default function GitHubProjects() {
                 <span className="chip">★ {repo.stargazers_count}</span>
               </div>
               <h3>{repo.name}</h3>
-              <p>{repo.description || 'Sem descrição no GitHub — o código está no repositório.'}</p>
+              <p>{repo.description || t.noDescription}</p>
               <div className="card-links">
                 <a href={repo.html_url} target="_blank" rel="noreferrer">
-                  Abrir repo
+                  {t.open}
                 </a>
                 {repo.homepage ? (
                   <a href={repo.homepage} target="_blank" rel="noreferrer">
-                    Site
+                    {t.site}
                   </a>
                 ) : null}
               </div>

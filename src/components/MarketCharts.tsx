@@ -16,12 +16,16 @@ import {
   type Historico,
   type Indicador,
 } from '../marketData'
+import { useCopy, useLang, type Lang, type Localized } from '../i18n'
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const MESES: Localized<string[]> = {
+  pt: ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'],
+  en: ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'],
+}
 
-function rotuloData(iso: string) {
+function rotuloData(iso: string, lang: Lang) {
   const [ano, mes] = iso.split('-')
-  return `${MESES[Number(mes) - 1]}/${ano.slice(2)}`
+  return `${MESES[lang][Number(mes) - 1]}/${ano.slice(2)}`
 }
 
 function rotuloTick(valor: number, indicador: Indicador) {
@@ -70,13 +74,15 @@ function SeletorIndicador({
   valor: Indicador
   onChange: (valor: Indicador) => void
 }) {
+  const lang = useLang()
+
   return (
     <label>
       <span>{rotulo}</span>
       <select value={valor} onChange={(event) => onChange(event.target.value as Indicador)}>
         {INDICADORES.map((ind) => (
           <option key={ind} value={ind}>
-            {ROTULOS[ind]}
+            {ROTULOS[lang][ind]}
           </option>
         ))}
       </select>
@@ -86,7 +92,37 @@ function SeletorIndicador({
 
 /* ------------------------------- dispersão ------------------------------- */
 
+const copyDispersao = {
+  pt: {
+    titulo: 'Preço x rentabilidade',
+    legenda: 'As medianas dividem o plano em quadrantes. O tamanho da bolha é a liquidez.',
+    eixoX: 'Eixo X',
+    eixoY: 'Eixo Y',
+    cortar: 'Cortar extremos',
+    liquidez: 'Liquidez',
+    aria: (x: string, y: string) => `Dispersão de ${x} contra ${y}`,
+    vazio: 'Nenhum papel com esses dois indicadores preenchidos.',
+    nota: (total: number, removidos: number) =>
+      `${total} papéis no gráfico, ${removidos} extremos omitidos para não achatar a escala.`,
+  },
+  en: {
+    titulo: 'Price vs. profitability',
+    legenda: 'The medians split the plane into quadrants. Bubble size is liquidity.',
+    eixoX: 'X axis',
+    eixoY: 'Y axis',
+    cortar: 'Trim outliers',
+    liquidez: 'Liquidity',
+    aria: (x: string, y: string) => `Scatter of ${x} against ${y}`,
+    vazio: 'No ticker has both of these indicators filled in.',
+    nota: (total: number, removidos: number) =>
+      `${total} tickers in the chart, ${removidos} outliers left out so they don't flatten the scale.`,
+  },
+}
+
 export function MarketScatter({ acoes }: { acoes: Acao[] }) {
+  const t = useCopy(copyDispersao)
+  const lang = useLang()
+  const rotulos = ROTULOS[lang]
   const [eixoX, setEixoX] = useState<Indicador>('pvp')
   const [eixoY, setEixoY] = useState<Indicador>('roe')
   const [recortar, setRecortar] = useState(true)
@@ -152,21 +188,19 @@ export function MarketScatter({ acoes }: { acoes: Acao[] }) {
     <section className="mk-card">
       <header className="mk-card-head">
         <div>
-          <h4>Preço x rentabilidade</h4>
-          <p className="mk-legend">
-            As medianas dividem o plano em quadrantes. O tamanho da bolha é a liquidez.
-          </p>
+          <h4>{t.titulo}</h4>
+          <p className="mk-legend">{t.legenda}</p>
         </div>
         <div className="mk-controls">
-          <SeletorIndicador rotulo="Eixo X" valor={eixoX} onChange={setEixoX} />
-          <SeletorIndicador rotulo="Eixo Y" valor={eixoY} onChange={setEixoY} />
+          <SeletorIndicador rotulo={t.eixoX} valor={eixoX} onChange={setEixoX} />
+          <SeletorIndicador rotulo={t.eixoY} valor={eixoY} onChange={setEixoY} />
           <label className="mk-check">
             <input
               type="checkbox"
               checked={recortar}
               onChange={(event) => setRecortar(event.target.checked)}
             />
-            Cortar extremos
+            {t.cortar}
           </label>
         </div>
       </header>
@@ -178,7 +212,7 @@ export function MarketScatter({ acoes }: { acoes: Acao[] }) {
               viewBox={`0 0 ${largura} ${altura}`}
               className="mk-svg"
               role="img"
-              aria-label={`Dispersão de ${ROTULOS[eixoX]} contra ${ROTULOS[eixoY]}`}
+              aria-label={t.aria(rotulos[eixoX], rotulos[eixoY])}
               onMouseMove={mover}
               onMouseLeave={() => setAlvo(null)}
             >
@@ -247,14 +281,14 @@ export function MarketScatter({ acoes }: { acoes: Acao[] }) {
                 y={altura - 6}
                 textAnchor="middle"
               >
-                {ROTULOS[eixoX]}
+                {rotulos[eixoX]}
               </text>
               <text
                 className="mk-axis"
                 transform={`translate(13 ${(margem.top + altura - margem.bottom) / 2}) rotate(-90)`}
                 textAnchor="middle"
               >
-                {ROTULOS[eixoY]}
+                {rotulos[eixoY]}
               </text>
             </svg>
 
@@ -265,24 +299,24 @@ export function MarketScatter({ acoes }: { acoes: Acao[] }) {
               >
                 <strong>{alvo.acao.papel}</strong>
                 <span>
-                  {ROTULOS[eixoX]}: {formatarIndicador(alvo.acao[eixoX], eixoX)}
+                  {rotulos[eixoX]}: {formatarIndicador(alvo.acao[eixoX], eixoX)}
                 </span>
                 <span>
-                  {ROTULOS[eixoY]}: {formatarIndicador(alvo.acao[eixoY], eixoY)}
+                  {rotulos[eixoY]}: {formatarIndicador(alvo.acao[eixoY], eixoY)}
                 </span>
-                <span>Liquidez: R$ {formatarGrande(alvo.acao.liq_2meses)}</span>
+                <span>
+                  {t.liquidez}: R$ {formatarGrande(alvo.acao.liq_2meses)}
+                </span>
               </div>
             ) : null}
           </>
         ) : (
-          <p className="mk-empty">Nenhum papel com esses dois indicadores preenchidos.</p>
+          <p className="mk-empty">{t.vazio}</p>
         )}
       </div>
 
       {recortar && removidos > 0 ? (
-        <footer className="mk-note">
-          {dados.length} papéis no gráfico, {removidos} extremos omitidos para não achatar a escala.
-        </footer>
+        <footer className="mk-note">{t.nota(dados.length, removidos)}</footer>
       ) : null}
     </section>
   )
@@ -290,7 +324,34 @@ export function MarketScatter({ acoes }: { acoes: Acao[] }) {
 
 /* -------------------------------- ranking -------------------------------- */
 
+const copyRanking = {
+  pt: {
+    titulo: 'Ranking',
+    legenda: 'Os papéis nos extremos do indicador escolhido.',
+    indicador: 'Indicador',
+    ordem: 'Ordem',
+    maiores: 'Maiores',
+    menores: 'Menores',
+    mostrar: 'Mostrar',
+    aria: (indicador: string) => `Ranking por ${indicador}`,
+    vazio: 'Nenhum papel com esse indicador preenchido.',
+  },
+  en: {
+    titulo: 'Ranking',
+    legenda: 'The tickers at the extremes of the chosen indicator.',
+    indicador: 'Indicator',
+    ordem: 'Order',
+    maiores: 'Highest',
+    menores: 'Lowest',
+    mostrar: 'Show',
+    aria: (indicador: string) => `Ranking by ${indicador}`,
+    vazio: 'No ticker has this indicator filled in.',
+  },
+}
+
 export function MarketRanking({ acoes }: { acoes: Acao[] }) {
+  const t = useCopy(copyRanking)
+  const lang = useLang()
   const [indicador, setIndicador] = useState<Indicador>('div_yield')
   const [ordem, setOrdem] = useState<'maiores' | 'menores'>('maiores')
   const [quantidade, setQuantidade] = useState(15)
@@ -321,23 +382,23 @@ export function MarketRanking({ acoes }: { acoes: Acao[] }) {
     <section className="mk-card">
       <header className="mk-card-head">
         <div>
-          <h4>Ranking</h4>
-          <p className="mk-legend">Os papéis nos extremos do indicador escolhido.</p>
+          <h4>{t.titulo}</h4>
+          <p className="mk-legend">{t.legenda}</p>
         </div>
         <div className="mk-controls">
-          <SeletorIndicador rotulo="Indicador" valor={indicador} onChange={setIndicador} />
+          <SeletorIndicador rotulo={t.indicador} valor={indicador} onChange={setIndicador} />
           <label>
-            <span>Ordem</span>
+            <span>{t.ordem}</span>
             <select
               value={ordem}
               onChange={(event) => setOrdem(event.target.value as 'maiores' | 'menores')}
             >
-              <option value="maiores">Maiores</option>
-              <option value="menores">Menores</option>
+              <option value="maiores">{t.maiores}</option>
+              <option value="menores">{t.menores}</option>
             </select>
           </label>
           <label>
-            <span>Mostrar</span>
+            <span>{t.mostrar}</span>
             <select value={quantidade} onChange={(event) => setQuantidade(Number(event.target.value))}>
               <option value={10}>10</option>
               <option value={15}>15</option>
@@ -353,7 +414,7 @@ export function MarketRanking({ acoes }: { acoes: Acao[] }) {
             viewBox={`0 0 ${largura} ${altura}`}
             className="mk-svg"
             role="img"
-            aria-label={`Ranking por ${ROTULOS[indicador]}`}
+            aria-label={t.aria(ROTULOS[lang][indicador])}
           >
             {dados.map((acao, i) => {
               const valor = acao[indicador] as number
@@ -373,7 +434,7 @@ export function MarketRanking({ acoes }: { acoes: Acao[] }) {
             })}
           </svg>
         ) : (
-          <p className="mk-empty">Nenhum papel com esse indicador preenchido.</p>
+          <p className="mk-empty">{t.vazio}</p>
         )}
       </div>
     </section>
@@ -382,7 +443,32 @@ export function MarketRanking({ acoes }: { acoes: Acao[] }) {
 
 /* ------------------------------ distribuição ----------------------------- */
 
+const copyDistribuicao = {
+  pt: {
+    titulo: 'Distribuição',
+    legenda: 'Onde um papel se posiciona em relação ao restante do mercado.',
+    indicador: 'Indicador',
+    mediana: 'mediana',
+    eixoY: 'nº de papéis',
+    contagem: (total: number) => `${total} papéis`,
+    aria: (indicador: string) => `Distribuição de ${indicador}`,
+    vazio: 'Sem dados para esse indicador.',
+  },
+  en: {
+    titulo: 'Distribution',
+    legenda: 'Where a ticker stands in relation to the rest of the market.',
+    indicador: 'Indicator',
+    mediana: 'median',
+    eixoY: 'no. of tickers',
+    contagem: (total: number) => `${total} tickers`,
+    aria: (indicador: string) => `Distribution of ${indicador}`,
+    vazio: 'No data for this indicator.',
+  },
+}
+
 export function MarketHistogram({ acoes, destaque }: { acoes: Acao[]; destaque?: string }) {
+  const t = useCopy(copyDistribuicao)
+  const lang = useLang()
   const [indicador, setIndicador] = useState<Indicador>('pl')
   const [alvo, setAlvo] = useState<{
     centro: number
@@ -443,11 +529,11 @@ export function MarketHistogram({ acoes, destaque }: { acoes: Acao[]; destaque?:
     <section className="mk-card">
       <header className="mk-card-head">
         <div>
-          <h4>Distribuição</h4>
-          <p className="mk-legend">Onde um papel se posiciona em relação ao restante do mercado.</p>
+          <h4>{t.titulo}</h4>
+          <p className="mk-legend">{t.legenda}</p>
         </div>
         <div className="mk-controls">
-          <SeletorIndicador rotulo="Indicador" valor={indicador} onChange={setIndicador} />
+          <SeletorIndicador rotulo={t.indicador} valor={indicador} onChange={setIndicador} />
         </div>
       </header>
 
@@ -458,7 +544,7 @@ export function MarketHistogram({ acoes, destaque }: { acoes: Acao[]; destaque?:
               viewBox={`0 0 ${largura} ${altura}`}
               className="mk-svg"
               role="img"
-              aria-label={`Distribuição de ${ROTULOS[indicador]}`}
+              aria-label={t.aria(ROTULOS[lang][indicador])}
               onMouseMove={mover}
               onMouseLeave={() => setAlvo(null)}
             >
@@ -507,7 +593,7 @@ export function MarketHistogram({ acoes, destaque }: { acoes: Acao[]; destaque?:
                 y2={altura - margem.bottom}
               />
               <text className="mk-median-label" x={cena.sx(central) + 5} y={margem.top + 9}>
-                mediana {formatarNumero(central)}
+                {t.mediana} {formatarNumero(central)}
               </text>
 
               {valorDestaque !== null && valorDestaque >= cena.x0 && valorDestaque <= cena.x1 ? (
@@ -535,14 +621,14 @@ export function MarketHistogram({ acoes, destaque }: { acoes: Acao[]; destaque?:
                 y={altura - 6}
                 textAnchor="middle"
               >
-                {ROTULOS[indicador]}
+                {ROTULOS[lang][indicador]}
               </text>
               <text
                 className="mk-axis"
                 transform={`translate(13 ${(margem.top + altura - margem.bottom) / 2}) rotate(-90)`}
                 textAnchor="middle"
               >
-                nº de papéis
+                {t.eixoY}
               </text>
             </svg>
 
@@ -552,12 +638,12 @@ export function MarketHistogram({ acoes, destaque }: { acoes: Acao[]; destaque?:
                 style={{ left: Math.min(alvo.px + 14, largura - 110), top: alvo.py + 12 }}
               >
                 <strong>{formatarNumero(alvo.centro)}</strong>
-                <span>{alvo.contagem} papéis</span>
+                <span>{t.contagem(alvo.contagem)}</span>
               </div>
             ) : null}
           </>
         ) : (
-          <p className="mk-empty">Sem dados para esse indicador.</p>
+          <p className="mk-empty">{t.vazio}</p>
         )}
       </div>
     </section>
@@ -566,7 +652,42 @@ export function MarketHistogram({ acoes, destaque }: { acoes: Acao[]; destaque?:
 
 /* --------------------------------- preços -------------------------------- */
 
+const copyPrecos = {
+  pt: {
+    titulo: 'Evolução dos preços',
+    legenda:
+      'Base 100 permite comparar papéis de preços muito diferentes na mesma escala. Arraste no gráfico para dar zoom.',
+    escala: 'Escala',
+    base100: 'Base 100',
+    preco: 'Preço em R$',
+    verAno: 'ver 12 meses',
+    aria: 'Evolução dos preços',
+    eixoBase100: 'Base 100 no início',
+    eixoPreco: 'Preço (R$)',
+    vazio: 'Nenhuma série selecionada.',
+    semHistorico:
+      'Nenhum dos papéis filtrados está no histórico exportado (ele cobre os 12 mais líquidos).',
+  },
+  en: {
+    titulo: 'Price history',
+    legenda:
+      'Base 100 lets you compare tickers with very different prices on the same scale. Drag across the chart to zoom in.',
+    escala: 'Scale',
+    base100: 'Base 100',
+    preco: 'Price in R$',
+    verAno: 'back to 12 months',
+    aria: 'Price history',
+    eixoBase100: 'Base 100 at the start',
+    eixoPreco: 'Price (R$)',
+    vazio: 'No series selected.',
+    semHistorico:
+      'None of the filtered tickers is in the exported history (it covers the 12 most liquid ones).',
+  },
+}
+
 export function MarketPrices({ historico, acoes }: { historico: Historico | null; acoes: Acao[] }) {
+  const t = useCopy(copyPrecos)
+  const lang = useLang()
   const [modo, setModo] = useState<'base100' | 'preco'>('base100')
   const [ocultos, setOcultos] = useState<Set<string>>(new Set())
   const [faixa, setFaixa] = useState<[number, number] | null>(null)
@@ -646,26 +767,23 @@ export function MarketPrices({ historico, acoes }: { historico: Historico | null
     <section className="mk-card">
       <header className="mk-card-head">
         <div>
-          <h4>Evolução dos preços</h4>
-          <p className="mk-legend">
-            Base 100 permite comparar papéis de preços muito diferentes na mesma escala. Arraste no
-            gráfico para dar zoom.
-          </p>
+          <h4>{t.titulo}</h4>
+          <p className="mk-legend">{t.legenda}</p>
         </div>
         <div className="mk-controls">
           <label>
-            <span>Escala</span>
+            <span>{t.escala}</span>
             <select
               value={modo}
               onChange={(event) => setModo(event.target.value as 'base100' | 'preco')}
             >
-              <option value="base100">Base 100</option>
-              <option value="preco">Preço em R$</option>
+              <option value="base100">{t.base100}</option>
+              <option value="preco">{t.preco}</option>
             </select>
           </label>
           {faixa ? (
             <button type="button" className="mk-link" onClick={() => setFaixa(null)}>
-              ver 12 meses
+              {t.verAno}
             </button>
           ) : null}
         </div>
@@ -694,7 +812,7 @@ export function MarketPrices({ historico, acoes }: { historico: Historico | null
                   viewBox={`0 0 ${largura} ${altura}`}
                   className="mk-svg mk-zoomable"
                   role="img"
-                  aria-label="Evolução dos preços"
+                  aria-label={t.aria}
                   onMouseDown={(event) => {
                     const { x } = posicao(event, largura, altura)
                     arrastando.current = true
@@ -745,7 +863,7 @@ export function MarketPrices({ historico, acoes }: { historico: Historico | null
                       y={altura - margem.bottom + 18}
                       textAnchor="middle"
                     >
-                      {rotuloData(historico!.datas[i])}
+                      {rotuloData(historico!.datas[i], lang)}
                     </text>
                   ))}
 
@@ -778,7 +896,7 @@ export function MarketPrices({ historico, acoes }: { historico: Historico | null
                     transform={`translate(13 ${(margem.top + altura - margem.bottom) / 2}) rotate(-90)`}
                     textAnchor="middle"
                   >
-                    {modo === 'base100' ? 'Base 100 no início' : 'Preço (R$)'}
+                    {modo === 'base100' ? t.eixoBase100 : t.eixoPreco}
                   </text>
                 </svg>
 
@@ -800,7 +918,7 @@ export function MarketPrices({ historico, acoes }: { historico: Historico | null
                 ) : null}
               </>
             ) : (
-              <p className="mk-empty">Nenhuma série selecionada.</p>
+              <p className="mk-empty">{t.vazio}</p>
             )}
           </div>
 
@@ -814,9 +932,7 @@ export function MarketPrices({ historico, acoes }: { historico: Historico | null
           </footer>
         </>
       ) : (
-        <p className="mk-empty">
-          Nenhum dos papéis filtrados está no histórico exportado (ele cobre os 12 mais líquidos).
-        </p>
+        <p className="mk-empty">{t.semHistorico}</p>
       )}
     </section>
   )

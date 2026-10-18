@@ -1,8 +1,81 @@
 import { useEffect, useRef, useState } from 'react'
+import { useCopy } from '../i18n'
 
 const PORT = 1515
 const CHUNK = 4096
 const DEST = 'teste/'
+
+/**
+ * As mensagens de log viram funções porque são montadas dentro dos handlers
+ * assíncronos, que leem este bloco por clausura.
+ */
+const copy = {
+  pt: {
+    titulo: 'Transferência por sockets',
+    apresentacaoAntes: 'Simulação do protocolo de',
+    apresentacaoMeio: `: cliente e servidor Java, porta ${PORT}, buffer de ${CHUNK} bytes,`,
+    apresentacaoFim:
+      'e ACK por arquivo. O navegador não abre TCP cru — o fluxo é o mesmo do código, rodando aqui.',
+    desconectado: 'desconectado',
+    conectando: 'conectando',
+    conectado: 'conectado',
+    enviando: 'enviando',
+    listening: 'listening',
+    accept: 'accept',
+    recebendo: 'recebendo',
+    conectar: 'Conectar',
+    desconectar: 'Desconectar',
+    usarExemplos: 'Usar exemplos',
+    escolherArquivos: 'Escolher arquivos',
+    enviar: 'Enviar',
+    filaVazia: 'Nenhum arquivo na fila.',
+    nadaRecebido: 'Nenhum arquivo recebido ainda.',
+    pastaDestino: `Pasta de destino: ${DEST}`,
+    chunkAtual: (atual: number, total: number) => `chunk ${atual}/${total}`,
+    aguardandoConexao: 'Aguardando conexão…',
+    servidorEsperando: `Servidor esperando conexão na porta ${PORT}...`,
+    clienteConectado: 'Cliente conectado!',
+    conectadoAoServidor: 'Conectado ao servidor.',
+    totalDeArquivos: (total: number) => `Número de arquivos a receber: ${total}`,
+    arquivoEnviado: (nome: string) => `Arquivo enviado: ${nome}`,
+    arquivoRecebido: (nome: string, bytes: number) =>
+      `Arquivo recebido: ${nome} (${bytes} bytes)`,
+    ackEnviado: (nome: string) => `out.writeUTF("Arquivo ${nome} recebido com sucesso!");`,
+    ackRecebido: (nome: string) => `Servidor: Arquivo ${nome} recebido com sucesso!`,
+  },
+  en: {
+    titulo: 'File transfer over sockets',
+    apresentacaoAntes: 'Simulation of the protocol from',
+    apresentacaoMeio: `: Java client and server, port ${PORT}, ${CHUNK}-byte buffer,`,
+    apresentacaoFim:
+      'and one ACK per file. Browsers cannot open raw TCP — the flow is the same as the original code, running right here.',
+    desconectado: 'disconnected',
+    conectando: 'connecting',
+    conectado: 'connected',
+    enviando: 'sending',
+    listening: 'listening',
+    accept: 'accept',
+    recebendo: 'receiving',
+    conectar: 'Connect',
+    desconectar: 'Disconnect',
+    usarExemplos: 'Use samples',
+    escolherArquivos: 'Choose files',
+    enviar: 'Send',
+    filaVazia: 'No files in the queue.',
+    nadaRecebido: 'No files received yet.',
+    pastaDestino: `Destination folder: ${DEST}`,
+    chunkAtual: (atual: number, total: number) => `chunk ${atual}/${total}`,
+    aguardandoConexao: 'Waiting for a connection…',
+    servidorEsperando: `Server waiting for a connection on port ${PORT}...`,
+    clienteConectado: 'Client connected!',
+    conectadoAoServidor: 'Connected to the server.',
+    totalDeArquivos: (total: number) => `Files to receive: ${total}`,
+    arquivoEnviado: (nome: string) => `File sent: ${nome}`,
+    arquivoRecebido: (nome: string, bytes: number) => `File received: ${nome} (${bytes} bytes)`,
+    ackEnviado: (nome: string) => `out.writeUTF("File ${nome} received successfully!");`,
+    ackRecebido: (nome: string) => `Server: File ${nome} received successfully!`,
+  },
+}
 
 type Phase = 'listening' | 'connecting' | 'connected' | 'sending'
 type Side = 'client' | 'server'
@@ -32,12 +105,11 @@ function makeSample(name: string, size: number): Payload {
 }
 
 export default function SocketTransfer() {
+  const t = useCopy(copy)
   const [phase, setPhase] = useState<Phase>('listening')
   const [files, setFiles] = useState<Payload[]>([])
   const [received, setReceived] = useState<Received[]>([])
-  const [logs, setLogs] = useState<LogLine[]>([
-    { id: 1, side: 'server', text: `Servidor esperando conexão na porta ${PORT}...` },
-  ])
+  const [logs, setLogs] = useState<LogLine[]>([])
   const [clientProgress, setClientProgress] = useState({ name: '', sent: 0, total: 0, chunk: 0, chunks: 0 })
   const [serverProgress, setServerProgress] = useState({ name: '', received: 0, total: 0 })
   const logId = useRef(1)
@@ -72,8 +144,7 @@ export default function SocketTransfer() {
     setServerProgress({ name: '', received: 0, total: 0 })
     if (!keepFiles) setFiles([])
     setPhase('listening')
-    logId.current += 1
-    setLogs([{ id: logId.current, side: 'server', text: `Servidor esperando conexão na porta ${PORT}...` }])
+    setLogs([])
   }
 
   async function connect() {
@@ -83,8 +154,8 @@ export default function SocketTransfer() {
     log('client', `Socket socket = new Socket("localhost", ${PORT});`)
     await sleep(420)
     if (cancelled.current) return
-    log('server', 'Cliente conectado!')
-    log('client', 'Conectado ao servidor.')
+    log('server', t.clienteConectado)
+    log('client', t.conectadoAoServidor)
     setPhase('connected')
   }
 
@@ -109,7 +180,7 @@ export default function SocketTransfer() {
     log('client', `out.writeInt(${files.length});`)
     await sleep(180)
     if (cancelled.current) return
-    log('server', `Número de arquivos a receber: ${files.length}`)
+    log('server', t.totalDeArquivos(files.length))
 
     for (const file of files) {
       if (cancelled.current) return
@@ -137,19 +208,19 @@ export default function SocketTransfer() {
       }
 
       if (cancelled.current) return
-      const copy = new Uint8Array(file.size)
-      copy.set(file.bytes)
-      const blob = new Blob([copy.buffer])
+      const copia = new Uint8Array(file.size)
+      copia.set(file.bytes)
+      const blob = new Blob([copia.buffer])
       const url = URL.createObjectURL(blob)
       urls.current.push(url)
       setReceived((current) => [...current, { name: file.name, size: file.size, url }])
 
-      log('client', `Arquivo enviado: ${file.name}`)
-      log('server', `Arquivo recebido: ${file.name} (${file.size} bytes)`)
+      log('client', t.arquivoEnviado(file.name))
+      log('server', t.arquivoRecebido(file.name, file.size))
       await sleep(160)
       if (cancelled.current) return
-      log('server', `out.writeUTF("Arquivo ${file.name} recebido com sucesso!");`)
-      log('client', `Servidor: Arquivo ${file.name} recebido com sucesso!`)
+      log('server', t.ackEnviado(file.name))
+      log('client', t.ackRecebido(file.name))
     }
 
     if (cancelled.current) return
@@ -169,15 +240,15 @@ export default function SocketTransfer() {
     <article className="panel socket-demo" id="demo-sockets">
       <div className="bancada-head">
         <div>
-          <h3>Transferência por sockets</h3>
+          <h3>{t.titulo}</h3>
           <p className="hint">
-            Simulação do protocolo de{' '}
+            {t.apresentacaoAntes}{' '}
             <a href="https://github.com/Diasz1m/proj_arquivos_sockets" target="_blank" rel="noreferrer">
               proj_arquivos_sockets
             </a>
-            : cliente e servidor Java, porta {PORT}, buffer de {CHUNK} bytes,{' '}
-            <code>writeInt</code> + <code>writeUTF</code> + <code>writeLong</code> e ACK por arquivo.
-            O navegador não abre TCP cru — o fluxo é o mesmo do código, rodando aqui.
+            {t.apresentacaoMeio}{' '}
+            <code>writeInt</code> + <code>writeUTF</code> + <code>writeLong</code>{' '}
+            {t.apresentacaoFim}
           </p>
         </div>
         <div className="socket-meta">
@@ -192,24 +263,24 @@ export default function SocketTransfer() {
           <header>
             <strong>ClienteArquivo</strong>
             <span className={`socket-pill ${phase}`}>
-              {phase === 'listening' ? 'desconectado' : phase === 'connecting' ? 'conectando' : phase === 'sending' ? 'enviando' : 'conectado'}
+              {phase === 'listening' ? t.desconectado : phase === 'connecting' ? t.conectando : phase === 'sending' ? t.enviando : t.conectado}
             </span>
           </header>
           <div className="socket-actions">
             {phase === 'listening' ? (
               <button className="solid-btn" type="button" onClick={() => void connect()}>
-                Conectar
+                {t.conectar}
               </button>
             ) : (
               <button className="ghost-btn" type="button" onClick={() => resetSession(true)}>
-                Desconectar
+                {t.desconectar}
               </button>
             )}
             <button className="ghost-btn" type="button" disabled={busy} onClick={loadSamples}>
-              Usar exemplos
+              {t.usarExemplos}
             </button>
             <label className="ghost-btn socket-file-btn">
-              Escolher arquivos
+              {t.escolherArquivos}
               <input
                 type="file"
                 multiple
@@ -221,11 +292,11 @@ export default function SocketTransfer() {
               />
             </label>
             <button className="solid-btn" type="button" disabled={phase !== 'connected' || !files.length} onClick={() => void send()}>
-              Enviar
+              {t.enviar}
             </button>
           </div>
           <ul className="socket-files">
-            {files.length === 0 ? <li className="faint">Nenhum arquivo na fila.</li> : null}
+            {files.length === 0 ? <li className="faint">{t.filaVazia}</li> : null}
             {files.map((file) => (
               <li key={file.name + file.size}>
                 <span>{file.name}</span>
@@ -236,7 +307,7 @@ export default function SocketTransfer() {
           {phase === 'sending' && clientProgress.total ? (
             <div className="socket-progress">
               <span>
-                {clientProgress.name} · chunk {clientProgress.chunk}/{clientProgress.chunks}
+                {clientProgress.name} · {t.chunkAtual(clientProgress.chunk, clientProgress.chunks)}
               </span>
               <div className="socket-bar">
                 <i style={{ width: `${clientPct}%` }} />
@@ -247,7 +318,7 @@ export default function SocketTransfer() {
             {logs
               .filter((line) => line.side === 'client')
               .map((line) => line.text)
-              .join('\n') || 'Aguardando conexão…'}
+              .join('\n') || t.aguardandoConexao}
           </pre>
         </section>
 
@@ -255,12 +326,12 @@ export default function SocketTransfer() {
           <header>
             <strong>ServidorArquivo</strong>
             <span className={`socket-pill ${phase === 'listening' ? 'listening' : phase}`}>
-              {phase === 'listening' ? 'listening' : phase === 'connecting' ? 'accept' : phase === 'sending' ? 'recebendo' : 'conectado'}
+              {phase === 'listening' ? t.listening : phase === 'connecting' ? t.accept : phase === 'sending' ? t.recebendo : t.conectado}
             </span>
           </header>
-          <p className="socket-dest">Pasta de destino: {DEST}</p>
+          <p className="socket-dest">{t.pastaDestino}</p>
           <ul className="socket-files">
-            {received.length === 0 ? <li className="faint">Nenhum arquivo recebido ainda.</li> : null}
+            {received.length === 0 ? <li className="faint">{t.nadaRecebido}</li> : null}
             {received.map((file) => (
               <li key={file.url}>
                 <a href={file.url} download={file.name}>
@@ -285,7 +356,7 @@ export default function SocketTransfer() {
             {logs
               .filter((line) => line.side === 'server')
               .map((line) => line.text)
-              .join('\n')}
+              .join('\n') || t.servidorEsperando}
           </pre>
         </section>
       </div>

@@ -1,15 +1,46 @@
 import { useEffect, useMemo, useState } from 'react'
+import { localeAtual, useCopy } from '../i18n'
 
 const CURRENCIES = ['BRL', 'USD', 'EUR', 'GBP', 'JPY', 'CAD'] as const
 
 type Rates = Record<string, number>
 
+const copy = {
+  pt: {
+    titulo: 'Conversor de moedas',
+    apresentacaoAntes: 'Inspirado em',
+    apresentacaoDepois: '. Cotações via AwesomeAPI.',
+    valor: 'Valor',
+    de: 'De',
+    para: 'Para',
+    inverter: 'Inverter moedas',
+    erro: 'Não foi possível carregar as cotações agora.',
+    carregando: 'Carregando cotações…',
+    detalhe: (valor: string, moeda: string, data: string) =>
+      `${valor} ${moeda} · atualizado em ${data}`,
+  },
+  en: {
+    titulo: 'Currency converter',
+    apresentacaoAntes: 'Inspired by',
+    apresentacaoDepois: '. Rates from AwesomeAPI.',
+    valor: 'Amount',
+    de: 'From',
+    para: 'To',
+    inverter: 'Swap currencies',
+    erro: 'The rates could not be loaded right now.',
+    carregando: 'Loading rates…',
+    detalhe: (valor: string, moeda: string, data: string) =>
+      `${valor} ${moeda} · updated on ${data}`,
+  },
+}
+
 export default function CurrencyConverter() {
+  const t = useCopy(copy)
   const [amount, setAmount] = useState('100')
   const [from, setFrom] = useState<(typeof CURRENCIES)[number]>('USD')
   const [to, setTo] = useState<(typeof CURRENCIES)[number]>('BRL')
   const [rates, setRates] = useState<Rates | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(false)
   const [updatedAt, setUpdatedAt] = useState('')
 
   useEffect(() => {
@@ -37,10 +68,10 @@ export default function CurrencyConverter() {
         setRates(next)
         const first = Object.values(data)[0]
         setUpdatedAt(first?.create_date?.slice(0, 10) ?? '')
-        setError('')
+        setError(false)
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
-        setError('Não foi possível carregar as cotações agora.')
+        setError(true)
       }
     }
 
@@ -64,16 +95,16 @@ export default function CurrencyConverter() {
 
   return (
     <article className="panel" id="demo-moedas">
-      <h3>Conversor de moedas</h3>
+      <h3>{t.titulo}</h3>
       <p className="hint">
-        Inspirado em{' '}
+        {t.apresentacaoAntes}{' '}
         <a href="https://github.com/Diasz1m/currency_quotation" target="_blank" rel="noreferrer">
           currency_quotation
         </a>
-        . Cotações via AwesomeAPI.
+        {t.apresentacaoDepois}
       </p>
       <label style={{ display: 'block', marginBottom: 12 }}>
-        <span>Valor</span>
+        <span>{t.valor}</span>
         <input
           inputMode="decimal"
           value={amount}
@@ -82,7 +113,7 @@ export default function CurrencyConverter() {
       </label>
       <div className="fx-row">
         <label>
-          <span>De</span>
+          <span>{t.de}</span>
           <select value={from} onChange={(event) => setFrom(event.target.value as typeof from)}>
             {CURRENCIES.map((code) => (
               <option key={code} value={code}>
@@ -91,11 +122,11 @@ export default function CurrencyConverter() {
             ))}
           </select>
         </label>
-        <button className="swap" type="button" onClick={swap} aria-label="Inverter moedas">
+        <button className="swap" type="button" onClick={swap} aria-label={t.inverter}>
           ⇄
         </button>
         <label>
-          <span>Para</span>
+          <span>{t.para}</span>
           <select value={to} onChange={(event) => setTo(event.target.value as typeof to)}>
             {CURRENCIES.map((code) => (
               <option key={code} value={code}>
@@ -105,22 +136,20 @@ export default function CurrencyConverter() {
           </select>
         </label>
       </div>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <p className="error">{t.erro}</p> : null}
       {!error && converted !== null ? (
         <p className="result">
-          {converted.toLocaleString('pt-BR', {
+          {converted.toLocaleString(localeAtual(), {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}{' '}
           {to}
-          <small>
-            {amount || '0'} {from} · atualizado em {updatedAt}
-          </small>
+          <small>{t.detalhe(amount || '0', from, updatedAt)}</small>
         </p>
       ) : null}
       {!error && converted === null ? (
         <p className="status" style={{ marginTop: 16 }}>
-          Carregando cotações…
+          {t.carregando}
         </p>
       ) : null}
     </article>
